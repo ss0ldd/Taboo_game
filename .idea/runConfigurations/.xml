@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ru.itis.taboo.client.Client" />
+    <module name="Taboo_game" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
