@@ -24,7 +24,6 @@ public class ClientHandler implements Runnable {
     private ScheduledExecutorService timerService; // Сервис для управления таймером
     private ScheduledFuture<?> timerFuture; // Ссылка на задачу таймера
 
-
     public ClientHandler(Socket socket) {
         this.socket = socket;
         try {
@@ -46,7 +45,13 @@ public class ClientHandler implements Runnable {
                 handleMessage(message);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Клиент отключился");
+            // Уведомление всех игроков, что клиент отключился
+            ClientHandler.broadcastMessage("taboo_bot", "Клиент отключился. Игра окончена.");
+            // Если остался только один игрок, объявляем его победителем
+            if (ClientHandler.clientHandlers.size() == 1) {
+                ClientHandler.broadcastMessage("taboo_bot", "Вы выиграли игру!");
+            }
         } finally {
             synchronized (clientHandlers) {
                 clientHandlers.remove(this); // Убираем клиента из списка при отключении
@@ -55,78 +60,64 @@ public class ClientHandler implements Runnable {
     }
 
     public void handleMessage(String message) {
-        String[] parts = message.split(" ");
-        if (parts.length < 2) {
-            throw new IllegalArgumentException("Invalid message format");
-        }
-
-        String messageType = parts[0];
-        String messageContent = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
-
         try {
-            MessageProtocol protocol = MessageProtocol.valueOf(messageType);
-            System.out.println(messageType);
-            switch (protocol) {
-                case NAME:
-                    this.clientName = messageContent;
-                    break;
-                case CHAT:
-                    if (currentHost == this) {
-                        // Если ведущий пытается написать сообщение
-                        if (Arrays.asList(tabooWords).contains(messageContent.toLowerCase())) {
-                            sendMessage("You cannot use taboo words!");
-                        } else {
-                            // Ведущий может писать только если это не табу-слово
-                            sendMessage("As the host, you cannot send chat messages.");
-                        }
-                    } else {
-                        // Если это не ведущий, проверяем на угаданные слова
-                        handleGuess(messageContent);
-                    }
-                    break;
-                case GUESS:
-                    handleGuess(messageContent); // Если игрок угадал слово
-                    break;
-                case START:
-                    startGame(); // Начать игру
-                    break;
-                case WORD:
-                    handleHostWord(messageContent); // Если ведущий называет слово
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown message: " + messageType);
+            String[] parts = message.split(" ");
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("Неверный формат сообщения");
             }
-        } catch (IllegalArgumentException e) {
-            System.out.println("Unknown message type: " + messageType);
+
+            String messageType = parts[0];
+            String messageContent = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
+
+            try {
+                MessageProtocol protocol = MessageProtocol.valueOf(messageType);
+                System.out.println(messageType);
+                switch (protocol) {
+                    case NAME:
+                        this.clientName = messageContent;
+                        break;
+                    case CHAT:
+                        if (currentHost == this) {
+                            // Если ведущий пытается написать сообщение
+                            if (Arrays.asList(tabooWords).contains(messageContent.toLowerCase())) {
+                                sendMessage("Вы не можете использовать табу-слова!");
+                            } else {
+                                // Ведущий может писать сообщения, если это не табу-слово
+                                ClientHandler.broadcastMessage(this.clientName, messageContent);
+                            }
+                        } else {
+                            // Если это не ведущий, проверяем на угаданные слова
+                            handleGuess(messageContent);
+                        }
+                        break;
+                    case GUESS:
+                        handleGuess(messageContent); // Если игрок угадал слово
+                        break;
+                    case START:
+                        startGame(); // Начать игру
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Неизвестное сообщение: " + messageType);
+                }
+            } catch (IllegalArgumentException e) {
+                System.out.println("Неизвестный тип сообщения: " + messageType);
+            }
+        } catch (Exception e) {
+            System.out.println("Ошибка обработки сообщения: " + e.getMessage());
         }
     }
 
     public void handleGuess(String guessedWord) {
         // Если игрок угадал слово
         if (guessedWord.equalsIgnoreCase(currentWord[0])) {
-            sendMessage("Congratulations! You guessed the word: " + currentWord[0]);
+            sendMessage("Поздравляем! Вы угадали слово: " + currentWord[0]);
             // Уведомление всем игрокам, что слово угадано
-            ClientHandler.broadcastMessage(this.clientName, "Guessed word: " + currentWord[0]);
+            ClientHandler.broadcastMessage(this.clientName, "Угаданное слово: " + currentWord[0]);
             // Игра заканчивается, игрок выиграл
             endGame(true);
             stopTimer(); // Останавливаем таймер
         } else {
-            sendMessage("Wrong guess, try again.");
-        }
-    }
-
-    public void handleHostWord(String word) {
-        // Проверка, не назвал ли ведущий слово, которое ему выпало
-        if (word.equalsIgnoreCase(currentWord[0])) {
-            sendMessage("You named the word! You lose.");
-            // Игра завершается, ведущий проиграл
-            endGame(false);
-        } else if (Arrays.asList(tabooWords).contains(word.toLowerCase())) {
-            sendMessage("You named a taboo word! You lose.");
-            // Игра завершается, ведущий проиграл
-            endGame(false);
-        } else {
-            sendMessage("You described the word: " + word);
+            ClientHandler.broadcastMessage(this.clientName, guessedWord);
         }
     }
 
@@ -139,7 +130,6 @@ public class ClientHandler implements Runnable {
             return senderName + ": " + messageContent;
         }
     }
-
 
     public void sendMessage(String message) {
         out.println(message);
@@ -156,30 +146,34 @@ public class ClientHandler implements Runnable {
     }
 
     public static void startGame() {
-        if (!clientHandlers.isEmpty()) {
-            // Назначаем ведущего случайным образом
-            currentHost = clientHandlers.get(new Random().nextInt(clientHandlers.size()));
-
-            // Получаем случайное слово и табу-слова
-            String[] selectedWord = GameUtil.getRandomWord(words);
-            String wordToDescribe = selectedWord[0];
-            tabooWords = Arrays.copyOfRange(selectedWord, 1, selectedWord.length);
-            currentWord = selectedWord;
-
-            // Отправляем ведущему слово и табу-слова
-            currentHost.sendMessage("You are the host! Your word to describe is: " + wordToDescribe);
-            currentHost.sendMessage("Taboo words: " + String.join(", ", tabooWords));
-
-            // Уведомляем всех игроков
-            for (ClientHandler handler : clientHandlers) {
-                if (handler != currentHost) {
-                    handler.sendMessage("A new game has started! The host is preparing to describe a word.");
-                }
-            }
-
-            // Запускаем таймер на 1 минуту
-            currentHost.startTimer();
+        // Проверяем, достаточно ли игроков для начала игры
+        if (clientHandlers.size() < 2) {
+            broadcastMessage("taboo_bot", "Недостаточно игроков для начала игры. Необходимо как минимум 2 игрока.");
+            return; // Прерываем выполнение метода, если игроков недостаточно
         }
+
+        // Назначаем ведущего случайным образом
+        currentHost = clientHandlers.get(new Random().nextInt(clientHandlers.size()));
+
+        // Получаем случайное слово и табу-слова
+        String[] selectedWord = GameUtil.getRandomWord(words);
+        String wordToDescribe = selectedWord[0];
+        tabooWords = Arrays.copyOfRange(selectedWord, 1, selectedWord.length);
+        currentWord = selectedWord;
+
+        // Отправляем ведущему слово и табу-слова
+        currentHost.sendMessage("Вы ведущий! Слово, которое вы должны описать: " + wordToDescribe);
+        currentHost.sendMessage("Табу слова: " + String.join(", ", tabooWords));
+
+        // Уведомляем всех игроков
+        for (ClientHandler handler : clientHandlers) {
+            if (handler != currentHost) {
+                handler.sendMessage("Новая игра началась! Ведущий должен описать слово.");
+            }
+        }
+
+        // Запускаем таймер на 1 минуту
+        currentHost.startTimer();
     }
 
     private void startTimer() {
@@ -206,21 +200,16 @@ public class ClientHandler implements Runnable {
     }
 
     private void endGame(boolean isPlayerWin) {
-        if (isPlayerWin) {
-            // Если игрок выиграл, отправляем всем сообщение о победе
-            ClientHandler.broadcastMessage(this.clientName, "Congratulations! " + this.clientName + " won the game!");
-            // Ведущему отправляем сообщение о том, что он проиграл
-            currentHost.sendMessage("Game over. You lost the game!");
-        } else {
-            // Если ведущий проиграл
-            ClientHandler.broadcastMessage(this.clientName, "Game over. " + this.clientName + " lost the game!");
-            // Ведущему отправляем сообщение о том, что он выиграл
-            currentHost.sendMessage("Congratulations! You won the game!");
+        for (ClientHandler handler : ClientHandler.clientHandlers) {
+            if (isPlayerWin) {
+                handler.sendMessage("Игра окончена! " + this.clientName + " выиграл(а) игру! Ведущий проиграл.");
+            } else {
+                handler.sendMessage("Игра окончена! Ведущий победил.");
+            }
         }
 
         // Сброс состояния игры для следующего раунда
         resetGame();
         stopTimer();  // Останавливаем таймер
     }
-
 }
