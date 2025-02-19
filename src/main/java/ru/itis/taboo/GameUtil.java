@@ -1,10 +1,7 @@
 package ru.itis.taboo;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.io.*;
-import java.util.*;
 
 public class GameUtil {
     // Загрузка слов из файла
@@ -13,8 +10,7 @@ public class GameUtil {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             String line;
             while ((line = br.readLine()) != null) {
-                // Разделяем строку на слова по запятой
-                String[] parts = line.split(",");
+                String[] parts = line.split(","); // Разделяем строку на слова по запятой
                 words.add(parts);
             }
         } catch (IOException e) {
@@ -26,6 +22,6 @@ public class GameUtil {
     // Рандомный выбор слова
     public static String[] getRandomWord(List<String[]> words) {
         Random random = new Random();
-        return words.get(random.nextInt(words.size()));
+        return words.get(random.nextInt(words.size())); // Возвращаем рандомное слово
     }
 }

@@ -1,7 +1,5 @@
 package ru.itis.taboo;
 
-import lombok.Getter;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -11,19 +9,19 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ClientHandler implements Runnable {
-    protected static List<ClientHandler> clientHandlers = new ArrayList<>(); // Список всех подключенных клиентов
+    protected static List<ClientHandler> clientHandlers = new ArrayList<>(); //список всех подключенных клиентов
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
-    private String clientName; // Имя клиента
+    private String clientName;
     private static final List<String[]> words = GameUtil.loadWordsFromFile("src/main/resources/words.txt");
-    private static String[] currentWord; // Текущее слово для объяснения
-    private static String[] tabooWords; // Табу-слова для ведущего
-    private static ClientHandler currentHost; // Текущий ведущий
+    private static String[] currentWord;// слово для объяснения
+    private static String[] tabooWords; // табу слова
+    private static ClientHandler currentHost;
     static boolean isGameIsOver = false;
 
-    private ScheduledExecutorService timerService; // Сервис для управления таймером
-    private ScheduledFuture<?> timerFuture; // Ссылка на задачу таймера
+    private ScheduledExecutorService timerService; //сервис для того чтобы управлять таймером
+    private ScheduledFuture<?> timerFuture; // ссылка на задачу таймера
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -31,7 +29,7 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
             synchronized (clientHandlers) {
-                clientHandlers.add(this); // Добавляем клиента в список при подключении
+                clientHandlers.add(this);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -47,15 +45,13 @@ public class ClientHandler implements Runnable {
             }
         } catch (IOException e) {
             System.out.println("Клиент отключился");
-            // Уведомление всех игроков, что клиент отключился
-            ClientHandler.broadcastMessage("taboo_bot", "Клиент отключился. Игра окончена.");
-            // Если остался только один игрок, объявляем его победителем
+            ClientHandler.broadcastMessage("taboo_bot", "Клиент отключился. Игра окончена.\uD83D\uDC40");
             if (ClientHandler.clientHandlers.size() == 1) {
-                ClientHandler.broadcastMessage("taboo_bot", "Вы выиграли игру!");
+                ClientHandler.broadcastMessage("taboo_bot", "Вы выиграли игру!\uD83C\uDF89");
             }
         } finally {
             synchronized (clientHandlers) {
-                clientHandlers.remove(this); // Убираем клиента из списка при отключении
+                clientHandlers.remove(this); //удаляем клиента из списка
             }
         }
     }
@@ -79,47 +75,38 @@ public class ClientHandler implements Runnable {
                         break;
                     case CHAT:
                         if (currentHost == this) {
-                            // Если ведущий пытается написать сообщение
                             if (Arrays.asList(tabooWords).contains(messageContent.toLowerCase())) {
-                                sendMessage("Вы не можете использовать табу-слова!");
+                                sendMessage("Вы не можете использовать табу-слова!❌");
                             } else if (messageContent.equalsIgnoreCase(currentWord[0])) {
-                                sendMessage("Вы не можете назвать слово, которое вам выпало!");
+                                sendMessage("Вы не можете назвать слово, которое вам выпало!❌");
                             } else {
-                                // Ведущий может писать сообщения, если это не табу-слово
                                 ClientHandler.broadcastMessage(this.clientName, messageContent);
                             }
                         } else {
-                            // Если это не ведущий, проверяем на угаданные слова
                             handleGuess(messageContent);
                         }
                         break;
-                    case GUESS:
-                        handleGuess(messageContent); // Если игрок угадал слово
-                        break;
                     case START:
-                        startGame(); // Начать игру
+                        startGame();
                         break;
                     default:
-                        throw new IllegalArgumentException("Неизвестное сообщение: " + messageType);
+                        throw new IllegalArgumentException("неизвестное сообщение: " + messageType);
                 }
             } catch (IllegalArgumentException e) {
-                System.out.println("Неизвестный тип сообщения: " + messageType);
+                System.out.println("неизвестный тип сообщения: " + messageType);
             }
         } catch (Exception e) {
-            System.out.println("Ошибка обработки сообщения: " + e.getMessage());
+            System.out.println("ошибка обработки сообщения: " + e.getMessage());
         }
     }
 
     public void handleGuess(String guessedWord) {
-        // Если игрок угадал слово
-        if (guessedWord.equalsIgnoreCase(currentWord[0])) {
-            sendMessage("Поздравляем! Вы угадали слово: " + currentWord[0]);
-            // Уведомление всем игрокам, что слово угадано
+        if (guessedWord.equalsIgnoreCase(currentWord[0])) {// Если игрок угадал слово
+            sendMessage("Поздравляем!\uD83C\uDF89 Вы угадали слово✅: " + currentWord[0]);
             ClientHandler.broadcastMessage(this.clientName, "Угаданное слово: " + currentWord[0]);
-            // Игра заканчивается, игрок выиграл
-            endGame(true); // Завершаем игру, игрок выиграл
+            endGame(true);
             isGameIsOver = false;
-            stopTimer(); // Останавливаем таймер
+            stopTimer();
         } else {
             ClientHandler.broadcastMessage(this.clientName, guessedWord);
         }
@@ -127,11 +114,10 @@ public class ClientHandler implements Runnable {
 
 
     private String formatMessage(String senderName, String messageContent) {
-        // Если отправитель — текущий клиент, показываем "Вы"
+        //если тот кто отправил сообщение, отправитель
         if (senderName.equals(this.clientName)) {
-            return "Вы: " + messageContent;
+            return "ВЫ: " + messageContent;
         } else {
-            // Иначе показываем имя отправителя
             return senderName + ": " + messageContent;
         }
     }
@@ -143,7 +129,6 @@ public class ClientHandler implements Runnable {
     public static void broadcastMessage(String senderName, String messageContent) {
         synchronized (clientHandlers) {
             for (ClientHandler handler : clientHandlers) {
-                // Каждый клиент форматирует сообщение самостоятельно
                 String formattedMessage = handler.formatMessage(senderName, messageContent);
                 handler.sendMessage(formattedMessage);
             }
@@ -151,40 +136,37 @@ public class ClientHandler implements Runnable {
     }
 
     public static void startGame() {
-        // Проверяем, достаточно ли игроков для начала игры
+        //проверяем хвтатает ли игроков
         if (clientHandlers.size() < 2) {
             broadcastMessage("taboo_bot", "Недостаточно игроков для начала игры. Необходимо как минимум 2 игрока.");
-            return; // Прерываем выполнение метода, если игроков недостаточно
+            return;
         }
 
-        // Назначаем ведущего случайным образом
+        //ведущий выбирается случайно
         currentHost = clientHandlers.get(new Random().nextInt(clientHandlers.size()));
-
-        // Получаем случайное слово и табу-слова
+        //получаем случайное слово и табу слова
         String[] selectedWord = GameUtil.getRandomWord(words);
         String wordToDescribe = selectedWord[0];
         tabooWords = Arrays.copyOfRange(selectedWord, 1, selectedWord.length);
         currentWord = selectedWord;
 
-        // Отправляем ведущему слово и табу-слова
-        currentHost.sendMessage("Вы ведущий! Слово, которое вы должны описать: " + wordToDescribe);
+        currentHost.sendMessage("Вы ведущий!⭐ Слово, которое вы должны описать: " + wordToDescribe);
         currentHost.sendMessage("Табу слова: " + String.join(", ", tabooWords));
 
-        // Уведомляем всех игроков
         for (ClientHandler handler : clientHandlers) {
             if (handler != currentHost) {
-                handler.sendMessage("Новая игра началась! Ведущий должен описать слово.");
+                handler.sendMessage("Новая игра началась!⭐ Ведущий должен описать слово.⭐");
             }
         }
         isGameIsOver = true;
-        // Запускаем таймер на 1 минуту
+
         currentHost.startTimer();
     }
 
     private void startTimer() {
         timerService = Executors.newSingleThreadScheduledExecutor();
         timerFuture = timerService.schedule(() -> {
-            // Время истекло, ведущий выигрывает
+            // время закончилось
             endGame(false);
             isGameIsOver = false;
         }, 1, TimeUnit.MINUTES);
@@ -209,15 +191,14 @@ public class ClientHandler implements Runnable {
         if (isGameIsOver) {
             for (ClientHandler handler : ClientHandler.clientHandlers) {
                 if (isPlayerWin) {
-                    handler.sendMessage("Игра окончена! " + this.clientName + " выиграл(а) игру! Ведущий проиграл.");
+                    handler.sendMessage("Игра окончена! " + this.clientName + " выиграл(а) игру!⭐ Ведущий проиграл.\uD83D\uDE1E");
                 } else {
-                    handler.sendMessage("Игра окончена! Ведущий победил.");
+                    handler.sendMessage("Игра окончена!✅ Ведущий победил.⭐");
                 }
             }
         }
-
-        // Сброс состояния игры для следующего раунда
+        //сброс состояния до след раунда
         resetGame();
-        stopTimer();  // Останавливаем таймер
+        stopTimer();
     }
 }
