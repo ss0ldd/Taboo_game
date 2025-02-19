@@ -17,8 +17,7 @@ public class Server {
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 new Thread(clientHandler).start();
 
-                // Когда подключится нужное количество игроков, можно начать игру
-                if (ClientHandler.clientHandlers.size() == MAX_PLAYERS) {
+                if (ClientHandler.clientHandlers.size() == MAX_PLAYERS) { // Когда подключится нужное количество игроков, подсвечиваем кнопку старта игры
                     enableStartGameButton();
                 }
             }
@@ -29,8 +28,7 @@ public class Server {
 
     private static void enableStartGameButton() {
         System.out.println("Все игроки подключены. Игра может начаться!");
-        // Уведомление всех игроков, что игра готова начать
-        ClientHandler.broadcastMessage("taboo_bot", "Все игроки присоединились, нажмите кнопку старт.");
+        ClientHandler.broadcastMessage("taboo_bot", "Все игроки присоединились, нажмите кнопку старт."); // Уведомление всех игроков, что игра готова начать
     }
 
     // Метод для старта игры при нажатии кнопки Start

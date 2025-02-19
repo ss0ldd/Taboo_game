@@ -7,15 +7,22 @@ import java.io.*;
 import java.net.*;
 
 public class Client {
+
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 12345;
+
     private static Socket socket;
     private static PrintWriter out;
     private static BufferedReader in;
+
     private static JTextArea chatArea;
     private static JTextField inputField;
+    private static JLabel timerLabel;
     private static JButton startButton;
-    private static String clientName;// Флаг для отслеживания состояния игры
+
+    private static String clientName;
+    private static Timer timer;
+    private static int timeLeft = 60;
 
     public static void main(String[] args) {
         try {
@@ -32,7 +39,7 @@ public class Client {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             out.println("NAME " + clientName);
-            // Интерфейс
+
             JFrame frame = new JFrame("Game Taboo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(960, 540);
@@ -58,18 +65,21 @@ public class Client {
                 }
             });
 
-            JPanel panel = new JPanel();
+            timerLabel = new JLabel("Осталось времени: 60"); // Инициализация метки таймера
+            timerLabel.setFont(new Font("Arial", Font.BOLD, 24));
+
+            JPanel panel = new JPanel(); // Отрисовка окна для игры
             panel.setLayout(new BorderLayout());
             panel.add(scrollPane, BorderLayout.CENTER);
             panel.add(inputField, BorderLayout.SOUTH);
             panel.add(startButton, BorderLayout.NORTH);
+            panel.add(timerLabel, BorderLayout.EAST);
 
             frame.add(panel, BorderLayout.CENTER);
 
             frame.setVisible(true);
 
-            // Чтение сообщений от сервера
-            String message;
+            String message; // Чтение сообщений от сервера
             while ((message = in.readLine()) != null) {
                 handleServerMessage(message);
             }
@@ -78,24 +88,50 @@ public class Client {
         }
     }
 
-    private static void sendMessage(String message) {
-        if (!message.isEmpty()) {
-            out.println("CHAT " + message);  // Отправляем чат-сообщение
-            inputField.setText("");  // Очищаем поле ввода
-        }
+    private static void startTimer() {
+        timeLeft = 60; // Сбрасываем таймер на 60 секунд
+        timerLabel.setText("Осталось времени: " + timeLeft); // Обновляем метку таймера
+
+        timer = new Timer(1000, new ActionListener() { // Создаем таймер, который будет обновлять метку каждую секунду
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                timeLeft--;
+
+                timerLabel.setText("Осталось времени: " + timeLeft); // Устанавливм количество оставшихся секунд
+                if (timeLeft <= 0) {
+                    timer.stop(); // Останавливаем таймер
+                    out.println("TIME_UP"); // Сообщаем серверу, что время истекло
+                }
+            }
+        });
+        timer.start(); // запускаем таймер
     }
 
     private static void handleServerMessage(String message) {
         // Обработка сообщений от сервера
         if (message.equals("taboo_bot: Все игроки присоединились, нажмите кнопку старт.")) {
-            chatArea.append(message + "\n");
+            chatArea.append(message + "\n"); // Добавляем в поле чата сообщение
             startButton.setEnabled(true);  // Включаем кнопку старта
         } else if (message.startsWith("Вы ведущий!")) {
             chatArea.append(message + "\n");
         } else if (message.startsWith("Новая игра началась!")) {
             chatArea.append(message + "\n");
+            startTimer();
+        } else if (message.startsWith("Игра окончена!")) {
+            chatArea.append(message + "\n");
+            if (timer != null) { // Проверяем, инициализирован ли таймер
+                timer.stop(); // Останавливаем таймер
+                timer = null; // Сбрасываем таймер
+            }
         } else {
             chatArea.append(message + "\n");
+        }
+    }
+
+    private static void sendMessage(String message) {
+        if (!message.isEmpty()) {
+            out.println("CHAT " + message);  // Отправляем чат-сообщение
+            inputField.setText("");  // Очищаем поле ввода
         }
     }
 }
