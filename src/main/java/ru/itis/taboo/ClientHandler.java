@@ -82,6 +82,8 @@ public class ClientHandler implements Runnable {
                             // Если ведущий пытается написать сообщение
                             if (Arrays.asList(tabooWords).contains(messageContent.toLowerCase())) {
                                 sendMessage("Вы не можете использовать табу-слова!");
+                            } else if (messageContent.equalsIgnoreCase(currentWord[0])) {
+                                sendMessage("Вы не можете назвать слово, которое вам выпало!");
                             } else {
                                 // Ведущий может писать сообщения, если это не табу-слово
                                 ClientHandler.broadcastMessage(this.clientName, messageContent);
