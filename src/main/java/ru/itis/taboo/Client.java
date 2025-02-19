@@ -57,7 +57,7 @@ public class Client {
             startButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    out.println("/start");  // Сообщаем серверу, что нужно начать игру
+                    out.println("START game started!");  // Сообщаем серверу, что нужно начать игру
                 }
             });
 
@@ -90,10 +90,11 @@ public class Client {
     private static void handleServerMessage(String message) {
         // Обработка сообщений от сервера
         if (message.equals("taboo_bot: All players are connected. Press 'Start' to begin the game.")) {
+            chatArea.append(message + "\n");
             startButton.setEnabled(true);  // Включаем кнопку старта
-        } else if (message.startsWith("taboo_bot: You are the host!")) {
+        } else if (message.startsWith("You are the host!")) {
             // Это сообщение для ведущего
-            chatArea.append("taboo_bot: You are the host. Your word is: " + message.substring(19) + "\n");
+            chatArea.append("You are the host. Your word is: " + message.substring(19) + "\n");
         } else if (message.startsWith("A new game has started!")) {
             chatArea.append(message + "\n");
         } else {

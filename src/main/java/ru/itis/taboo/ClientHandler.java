@@ -41,6 +41,7 @@ public class ClientHandler implements Runnable {
     }
 
     public void handleMessage(String message) {
+        System.out.println(message);
         // Разделяем сообщение на тип и содержание
         String[] parts = message.split(" ");
         if (parts.length < 2) {
@@ -54,9 +55,6 @@ public class ClientHandler implements Runnable {
             MessageProtocol protocol = MessageProtocol.valueOf(messageType);
             switch (protocol) {
                 case NAME:
-                    if (messageType.equals("taboo_bot")){
-
-                    }
                     // Получаем имя клиента и сохраняем его
                     this.clientName = messageContent;
                     System.out.println("Client name set to: " + clientName);
@@ -67,6 +65,10 @@ public class ClientHandler implements Runnable {
                     break;
                 case GUESS:
                     // Обрабатываем угадывание (можно добавить логику угадывания)
+                    break;
+                case START:
+                    // Формируем сообщение без предварительного форматирования
+                    startGame();
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown message: " + messageType);
@@ -107,6 +109,7 @@ public class ClientHandler implements Runnable {
         // Назначаем ведущего случайным образом (например, первый подключенный игрок)
         if (!clientHandlers.isEmpty()) {
             ClientHandler currentHost = clientHandlers.get(new Random().nextInt(clientHandlers.size()));
+            //здесь надо добавить метод обработки из text
             currentHost.sendMessage("You are the host! Your word to describe is: java");
 
             // Уведомляем всех игроков

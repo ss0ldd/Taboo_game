@@ -5,6 +5,7 @@ public enum MessageProtocol {
     GUESS,       // Клиент делает попытку угадать слово
     CHAT,
     NAME,// Сообщения в чат
+    START,
     GAME_OVER;   // Конец игры
 
     public static MessageProtocol fromString(String str) {
@@ -17,6 +18,8 @@ public enum MessageProtocol {
                 return GUESS;
             case "CHAT":
                 return CHAT;
+            case "START":
+                return START;
             case "GAME_OVER":
                 return GAME_OVER;
             default:
