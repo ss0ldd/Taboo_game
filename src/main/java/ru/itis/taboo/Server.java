@@ -43,10 +43,18 @@ public class Server {
         }
     }
 
-
     public static void broadcastMessage(String message) {
         for (ClientHandler handler : clientHandlers) {
             handler.sendMessage(message);
+        }
+    }
+    // Обрабатываем команду от клиента (например, /start)
+    public static void handleMessage(String message, ClientHandler handler) {
+        if (message.equals("/start")) {
+            startGame();  // Начинаем игру при получении команды /start
+        } else {
+            // Если команда не распознана, игнорируем
+            System.out.println("Invalid command: " + message);
         }
     }
 

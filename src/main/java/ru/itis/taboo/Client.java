@@ -9,7 +9,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
-
 public class Client {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 12345;
@@ -19,9 +18,18 @@ public class Client {
     private static JTextArea chatArea;
     private static JTextField inputField;
     private static JButton startButton;
+    private static String clientName;
 
     public static void main(String[] args) {
         try {
+            clientName = JOptionPane.showInputDialog("Enter your name");
+
+            if (clientName == null || clientName.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Name cannot be empty. Closing application.");
+                System.exit(0);  // Закрыть приложение, если имя не введено
+                return;  // Завершаем выполнение метода
+            }
+
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -73,8 +81,8 @@ public class Client {
 
     private static void sendMessage(String message) {
         if (!message.isEmpty()) {
-            out.println("/chat " + message);
-            inputField.setText("");
+            out.println("CHAT " + message);  // Отправляем чат-сообщение
+            inputField.setText("");  // Очищаем поле ввода
         }
     }
 

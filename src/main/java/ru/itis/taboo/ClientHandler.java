@@ -34,33 +34,38 @@ public class ClientHandler implements Runnable {
     }
 
     public void handleMessage(String message) {
-        // Разделяем сообщение на тип и текст
-        String[] parts = message.split(" "); // Разделяем на 2 части: тип и сообщение
-        if (parts.length < 2) {
-            // Если нет сообщения, выкидываем исключение
-            throw new IllegalArgumentException("Invalid message format");
-        }
-
-        String messageType = parts[0]; // Тип сообщения
-        String messageContent = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));// Содержание сообщения
-
-        // Обрабатываем сообщение в зависимости от его типа
-        try {
-            MessageProtocol protocol = MessageProtocol.valueOf(messageType); // Преобразуем тип в enum
-            switch (protocol) {
-                case CHAT:
-                    // Обрабатываем чат-сообщение
-                    broadcastMessage("Chat: " + messageContent);
-                    break;
-                case GUESS:
-                    // Обрабатываем угадывание
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown message: " + messageType);
+        if (message.equals("/start")) {
+            // Если получена команда /start, отправляем на сервер для начала игры
+            Server.handleMessage(message, this);
+        } else {
+            // Разделяем сообщение на тип и текст
+            String[] parts = message.split(" "); // Разделяем на 2 части: тип и сообщение
+            if (parts.length < 2) {
+                // Если нет сообщения, выкидываем исключение
+                throw new IllegalArgumentException("Invalid message format");
             }
-        } catch (IllegalArgumentException e) {
-            // Логируем ошибку, если тип сообщения неизвестен
-            System.out.println("Unknown message type: " + messageType);
+
+            String messageType = parts[0]; // Тип сообщения
+            String messageContent = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));// Содержание сообщения
+
+            // Обрабатываем сообщение в зависимости от его типа
+            try {
+                MessageProtocol protocol = MessageProtocol.valueOf(messageType); // Преобразуем тип в enum
+                switch (protocol) {
+                    case CHAT:
+                        // Обрабатываем чат-сообщение
+                        broadcastMessage("Chat: " + messageContent);
+                        break;
+                    case GUESS:
+                        // Обрабатываем угадывание
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown message: " + messageType);
+                }
+            } catch (IllegalArgumentException e) {
+                // Логируем ошибку, если тип сообщения неизвестен
+                System.out.println("Unknown message type: " + messageType);
+            }
         }
 
     }
