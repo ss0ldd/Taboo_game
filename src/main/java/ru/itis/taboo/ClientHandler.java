@@ -1,8 +1,10 @@
 package ru.itis.taboo;
 import java.io.*;
 import java.net.*;
+import java.util.Arrays;
 
 import static ru.itis.taboo.Server.broadcastMessage;
+import static ru.itis.taboo.Server.startGame;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -33,14 +35,14 @@ public class ClientHandler implements Runnable {
 
     public void handleMessage(String message) {
         // Разделяем сообщение на тип и текст
-        String[] parts = message.split(" ", 2); // Разделяем на 2 части: тип и сообщение
+        String[] parts = message.split(" "); // Разделяем на 2 части: тип и сообщение
         if (parts.length < 2) {
             // Если нет сообщения, выкидываем исключение
             throw new IllegalArgumentException("Invalid message format");
         }
 
         String messageType = parts[0]; // Тип сообщения
-        String messageContent = parts[1]; // Содержание сообщения
+        String messageContent = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));// Содержание сообщения
 
         // Обрабатываем сообщение в зависимости от его типа
         try {
@@ -60,6 +62,7 @@ public class ClientHandler implements Runnable {
             // Логируем ошибку, если тип сообщения неизвестен
             System.out.println("Unknown message type: " + messageType);
         }
+
     }
 
 

@@ -9,6 +9,8 @@ public class Server {
     private static List<ClientHandler> clientHandlers = new ArrayList<>();
     protected static String wordToGuess = "java"; // Пример слова
     private static String[] tabooWords = {"programming", "language", "computer"}; // Пример табу
+    private static final int MAX_PLAYERS = 2;
+    private static ClientHandler currentHost = null;
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -20,11 +22,27 @@ public class Server {
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 clientHandlers.add(clientHandler);
                 new Thread(clientHandler).start();
+
+                // Если подключилось нужное количество игроков, можно активировать кнопку "Start"
+                if (clientHandlers.size() == MAX_PLAYERS) {
+                    enableStartGameButton();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    // Функция для активации кнопки Start и начала игры
+    private static void enableStartGameButton() {
+        System.out.println("All players are connected. Game can start now!");
+
+        // Уведомление всех игроков, что игра готова начать
+        for (ClientHandler handler : clientHandlers) {
+            handler.sendMessage("All players are connected. Press 'Start' to begin the game.");
+        }
+    }
+
 
     public static void broadcastMessage(String message) {
         for (ClientHandler handler : clientHandlers) {
@@ -32,12 +50,19 @@ public class Server {
         }
     }
 
+    // Метод для старта игры при нажатии кнопки Start
     public static void startGame() {
-        // Начало игры: отправка слова для описания и табу слов
+        // Назначаем ведущего случайным образом
+        Random rand = new Random();
+        currentHost = clientHandlers.get(rand.nextInt(clientHandlers.size()));
+        currentHost.sendMessage("You are the host! Your word to describe is: " + wordToGuess);
+
+        // Уведомляем всех игроков
         for (ClientHandler handler : clientHandlers) {
-            handler.sendMessage(MessageProtocol.NEW_WORD.name());
-            handler.sendMessage(wordToGuess);
-            handler.sendMessage("Taboo words: " + Arrays.toString(tabooWords));
+            if (handler != currentHost) {
+                handler.sendMessage("A new game has started! The host is preparing to describe a word.");
+            }
         }
     }
+
 }
