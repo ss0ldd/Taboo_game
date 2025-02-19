@@ -34,6 +34,7 @@ public class Client {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+            out.println("NAME " + clientName);
             // Интерфейс
             JFrame frame = new JFrame("Taboo Game");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -88,11 +89,11 @@ public class Client {
 
     private static void handleServerMessage(String message) {
         // Обработка сообщений от сервера
-        if (message.equals("All players are connected. Press 'Start' to begin the game.")) {
+        if (message.equals("taboo_bot: All players are connected. Press 'Start' to begin the game.")) {
             startButton.setEnabled(true);  // Включаем кнопку старта
-        } else if (message.startsWith("You are the host!")) {
+        } else if (message.startsWith("taboo_bot: You are the host!")) {
             // Это сообщение для ведущего
-            chatArea.append("You are the host. Your word is: " + message.substring(19) + "\n");
+            chatArea.append("taboo_bot: You are the host. Your word is: " + message.substring(19) + "\n");
         } else if (message.startsWith("A new game has started!")) {
             chatArea.append(message + "\n");
         } else {
