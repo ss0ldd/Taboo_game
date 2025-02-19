@@ -6,6 +6,7 @@ public enum MessageProtocol {
     CHAT,
     NAME,// Сообщения в чат
     START,
+    WORD,
     GAME_OVER;   // Конец игры
 
     public static MessageProtocol fromString(String str) {
@@ -20,6 +21,8 @@ public enum MessageProtocol {
                 return CHAT;
             case "START":
                 return START;
+            case "WORD":
+                return WORD;
             case "GAME_OVER":
                 return GAME_OVER;
             default:
