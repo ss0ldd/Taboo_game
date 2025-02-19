@@ -20,6 +20,7 @@ public class ClientHandler implements Runnable {
     private static String[] currentWord; // Текущее слово для объяснения
     private static String[] tabooWords; // Табу-слова для ведущего
     private static ClientHandler currentHost; // Текущий ведущий
+    static boolean isGameIsOver = false;
 
     private ScheduledExecutorService timerService; // Сервис для управления таймером
     private ScheduledFuture<?> timerFuture; // Ссылка на задачу таймера
@@ -114,12 +115,14 @@ public class ClientHandler implements Runnable {
             // Уведомление всем игрокам, что слово угадано
             ClientHandler.broadcastMessage(this.clientName, "Угаданное слово: " + currentWord[0]);
             // Игра заканчивается, игрок выиграл
-            endGame(true);
+            endGame(true); // Завершаем игру, игрок выиграл
+            isGameIsOver = false;
             stopTimer(); // Останавливаем таймер
         } else {
             ClientHandler.broadcastMessage(this.clientName, guessedWord);
         }
     }
+
 
     private String formatMessage(String senderName, String messageContent) {
         // Если отправитель — текущий клиент, показываем "Вы"
@@ -171,7 +174,7 @@ public class ClientHandler implements Runnable {
                 handler.sendMessage("Новая игра началась! Ведущий должен описать слово.");
             }
         }
-
+        isGameIsOver = true;
         // Запускаем таймер на 1 минуту
         currentHost.startTimer();
     }
@@ -181,6 +184,7 @@ public class ClientHandler implements Runnable {
         timerFuture = timerService.schedule(() -> {
             // Время истекло, ведущий выигрывает
             endGame(false);
+            isGameIsOver = false;
         }, 1, TimeUnit.MINUTES);
     }
 
@@ -200,11 +204,13 @@ public class ClientHandler implements Runnable {
     }
 
     private void endGame(boolean isPlayerWin) {
-        for (ClientHandler handler : ClientHandler.clientHandlers) {
-            if (isPlayerWin) {
-                handler.sendMessage("Игра окончена! " + this.clientName + " выиграл(а) игру! Ведущий проиграл.");
-            } else {
-                handler.sendMessage("Игра окончена! Ведущий победил.");
+        if (isGameIsOver) {
+            for (ClientHandler handler : ClientHandler.clientHandlers) {
+                if (isPlayerWin) {
+                    handler.sendMessage("Игра окончена! " + this.clientName + " выиграл(а) игру! Ведущий проиграл.");
+                } else {
+                    handler.sendMessage("Игра окончена! Ведущий победил.");
+                }
             }
         }
 

@@ -14,8 +14,11 @@ public class Client {
     private static BufferedReader in;
     private static JTextArea chatArea;
     private static JTextField inputField;
+    private static JLabel timerLabel;
     private static JButton startButton;
     private static String clientName;// Флаг для отслеживания состояния игры
+    private static Timer timer; // Таймер для отсчета времени
+    private static int timeLeft = 60;
 
     public static void main(String[] args) {
         try {
@@ -58,11 +61,15 @@ public class Client {
                 }
             });
 
+            timerLabel = new JLabel("Осталось времени: 60"); // Инициализация метки таймера
+            timerLabel.setFont(new Font("Arial", Font.BOLD, 24));
+
             JPanel panel = new JPanel();
             panel.setLayout(new BorderLayout());
             panel.add(scrollPane, BorderLayout.CENTER);
             panel.add(inputField, BorderLayout.SOUTH);
             panel.add(startButton, BorderLayout.NORTH);
+            panel.add(timerLabel, BorderLayout.EAST);
 
             frame.add(panel, BorderLayout.CENTER);
 
@@ -94,8 +101,35 @@ public class Client {
             chatArea.append(message + "\n");
         } else if (message.startsWith("Новая игра началась!")) {
             chatArea.append(message + "\n");
+            startTimer();
+        } else if (message.startsWith("Игра окончена!")) {
+            chatArea.append(message + "\n");
+            if (timer != null) { // Проверяем, инициализирован ли таймер
+                timer.stop(); // Останавливаем таймер
+                timer = null; // Сбрасываем таймер
+            }
         } else {
             chatArea.append(message + "\n");
         }
+    }
+
+    private static void startTimer() {
+        timeLeft = 60; // Сбрасываем таймер на 60 секунд
+        timerLabel.setText("Осталось времени: " + timeLeft); // Обновляем метку таймера
+
+        // Создаем таймер, который будет обновлять метку каждую секунду
+        timer = new Timer(1000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                timeLeft--;
+
+                timerLabel.setText("Осталось времени: " + timeLeft);
+                if (timeLeft <= 0) {
+                    timer.stop(); // Останавливаем таймер
+                    out.println("TIME_UP"); // Сообщаем серверу, что время истекло
+                }
+            }
+        });
+        timer.start();
     }
 }
